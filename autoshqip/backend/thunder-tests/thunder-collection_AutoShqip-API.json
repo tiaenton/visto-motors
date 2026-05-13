@@ -1,0 +1,591 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "AutoShqip API",
+  "dateExported": "2026-05-13T00:00:00.000Z",
+  "version": "1.2",
+  "folders": [
+    {
+      "_id": "folder-health",
+      "name": "Health",
+      "containerId": "",
+      "created": "2026-05-13T00:00:00.000Z",
+      "sortNum": 5000
+    },
+    {
+      "_id": "folder-auth",
+      "name": "Auth",
+      "containerId": "",
+      "created": "2026-05-13T00:00:00.000Z",
+      "sortNum": 10000
+    },
+    {
+      "_id": "folder-listings",
+      "name": "Listings",
+      "containerId": "",
+      "created": "2026-05-13T00:00:00.000Z",
+      "sortNum": 20000
+    },
+    {
+      "_id": "folder-users",
+      "name": "Users",
+      "containerId": "",
+      "created": "2026-05-13T00:00:00.000Z",
+      "sortNum": 30000
+    },
+    {
+      "_id": "folder-messages",
+      "name": "Messages",
+      "containerId": "",
+      "created": "2026-05-13T00:00:00.000Z",
+      "sortNum": 40000
+    }
+  ],
+  "requests": [
+    {
+      "_id": "req-health",
+      "colId": "col-autoshqip",
+      "containerId": "folder-health",
+      "name": "Health Check",
+      "url": "{{baseUrl}}/health",
+      "method": "GET",
+      "sortNum": 5000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Quick check that the server is running. Expected: { status: 'ok', timestamp: '...' }"
+    },
+
+    {
+      "_id": "req-auth-register",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "1. Register User",
+      "url": "{{baseUrl}}/api/auth/register",
+      "method": "POST",
+      "sortNum": 10000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser@autoshqip.al\",\n  \"password\": \"Password123\",\n  \"name\": \"Test User\",\n  \"phone\": \"+355691234567\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Registers a new user. A verification email is sent — copy the verifyToken from the DB or email logs and use it in 'Verify Email'. NOTE: rate limited to 10 req / 15 min."
+    },
+
+    {
+      "_id": "req-auth-verify-email",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "2. Verify Email",
+      "url": "{{baseUrl}}/api/auth/verify-email/{{verifyToken}}",
+      "method": "GET",
+      "sortNum": 11000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Set {{verifyToken}} in the environment to the token from the email / DB (users.verifyToken column). This sets isVerified=true so login works."
+    },
+
+    {
+      "_id": "req-auth-login",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "3. Login",
+      "url": "{{baseUrl}}/api/auth/login",
+      "method": "POST",
+      "sortNum": 12000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser@autoshqip.al\",\n  \"password\": \"Password123\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Returns accessToken (15 min) and refreshToken (30 days). Copy accessToken → set {{accessToken}} env var. Copy refreshToken → set {{refreshToken}} env var. Copy user.id → set {{userId}} env var."
+    },
+
+    {
+      "_id": "req-auth-me",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "4. Get Current User (me)",
+      "url": "{{baseUrl}}/api/auth/me",
+      "method": "GET",
+      "sortNum": 13000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns the authenticated user's full profile including credit balance, listing count, and referral count."
+    },
+
+    {
+      "_id": "req-auth-refresh",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "5. Refresh Token",
+      "url": "{{baseUrl}}/api/auth/refresh",
+      "method": "POST",
+      "sortNum": 14000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Issues a new accessToken + refreshToken pair. Update {{accessToken}} and {{refreshToken}} env vars with the new values."
+    },
+
+    {
+      "_id": "req-auth-forgot-password",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "6. Forgot Password",
+      "url": "{{baseUrl}}/api/auth/forgot-password",
+      "method": "POST",
+      "sortNum": 15000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser@autoshqip.al\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Always returns a generic message regardless of whether the email exists (anti-enumeration). Copy resetToken from DB / email logs → set {{resetToken}} env var."
+    },
+
+    {
+      "_id": "req-auth-reset-password",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "7. Reset Password",
+      "url": "{{baseUrl}}/api/auth/reset-password",
+      "method": "POST",
+      "sortNum": 16000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"NewPassword456\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Token expires in 1 hour. Also invalidates all active refresh tokens (forces re-login)."
+    },
+
+    {
+      "_id": "req-auth-logout",
+      "colId": "col-autoshqip",
+      "containerId": "folder-auth",
+      "name": "8. Logout",
+      "url": "{{baseUrl}}/api/auth/logout",
+      "method": "POST",
+      "sortNum": 17000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Deletes the refresh token from Redis. The accessToken remains valid until its 15-min expiry."
+    },
+
+    {
+      "_id": "req-listings-get-all",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Get All Listings (public)",
+      "url": "{{baseUrl}}/api/listings",
+      "method": "GET",
+      "sortNum": 20000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [
+        { "name": "page", "value": "1", "isPath": false },
+        { "name": "limit", "value": "20", "isPath": false },
+        { "name": "sort", "value": "newest", "isPath": false }
+      ],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Optional filters: make, model, fuelType (BENZINE|DIESEL|ELEKTRIK|HIBRID|GAS), transmission (MANUAL|AUTOMATIK), city, minPrice, maxPrice, minYear, maxYear, minMileage, maxMileage, featured (true). Sort options: newest, oldest, price_asc, price_desc, mileage_asc."
+    },
+
+    {
+      "_id": "req-listings-get-all-filtered",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Get Listings (with filters)",
+      "url": "{{baseUrl}}/api/listings",
+      "method": "GET",
+      "sortNum": 21000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [
+        { "name": "make", "value": "BMW", "isPath": false },
+        { "name": "fuelType", "value": "BENZINE", "isPath": false },
+        { "name": "minPrice", "value": "5000", "isPath": false },
+        { "name": "maxPrice", "value": "30000", "isPath": false },
+        { "name": "minYear", "value": "2015", "isPath": false },
+        { "name": "city", "value": "Tiranë", "isPath": false },
+        { "name": "sort", "value": "price_asc", "isPath": false },
+        { "name": "page", "value": "1", "isPath": false },
+        { "name": "limit", "value": "10", "isPath": false }
+      ],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Example with common search filters applied."
+    },
+
+    {
+      "_id": "req-listings-get-one",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Get Single Listing",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}",
+      "method": "GET",
+      "sortNum": 22000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Set {{listingId}} env var after creating a listing. Returns full listing with all images and seller info. Includes isSaved field if authenticated."
+    },
+
+    {
+      "_id": "req-listings-create",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Create Listing",
+      "url": "{{baseUrl}}/api/listings",
+      "method": "POST",
+      "sortNum": 23000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"title\": \"BMW 320d - Gjendje Shkelqyeshme\",\n  \"description\": \"Makine ne gjendje shume te mire, service i kryer rregullisht, pa aksident, dokumenta te plota. Kerkohet vetem serioze.\",\n  \"price\": 18500,\n  \"year\": 2019,\n  \"make\": \"BMW\",\n  \"model\": \"320d\",\n  \"variant\": \"Sport Line\",\n  \"mileage\": 95000,\n  \"fuelType\": \"DIESEL\",\n  \"transmission\": \"AUTOMATIK\",\n  \"engineSize\": 2.0,\n  \"power\": 190,\n  \"color\": \"E zeze\",\n  \"doors\": 4,\n  \"seats\": 5,\n  \"city\": \"Tiranë\",\n  \"region\": \"Tiranë\",\n  \"imageUrls\": []\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Requires an active subscription (checkSubscription). If you get 402, the user needs a subscription. Copy the returned listing id → set {{listingId}} env var. fuelType: BENZINE|DIESEL|ELEKTRIK|HIBRID|GAS. transmission: MANUAL|AUTOMATIK."
+    },
+
+    {
+      "_id": "req-listings-update",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Update Listing",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}",
+      "method": "PUT",
+      "sortNum": 24000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"price\": 17500,\n  \"description\": \"Cmim i reduktuar. Makine ne gjendje shume te mire, service i kryer rregullisht, pa aksident.\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Send only the fields you want to update. Only the listing owner or an ADMIN can update."
+    },
+
+    {
+      "_id": "req-listings-my",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "My Listings",
+      "url": "{{baseUrl}}/api/listings/my",
+      "method": "GET",
+      "sortNum": 25000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns all listings (any status) belonging to the authenticated user, newest first."
+    },
+
+    {
+      "_id": "req-listings-save",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Save Listing",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}/save",
+      "method": "POST",
+      "sortNum": 26000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Saves (bookmarks) a listing for the authenticated user. Idempotent — safe to call multiple times."
+    },
+
+    {
+      "_id": "req-listings-saved",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Get Saved Listings",
+      "url": "{{baseUrl}}/api/listings/saved",
+      "method": "GET",
+      "sortNum": 27000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns all listings the authenticated user has saved (bookmarked)."
+    },
+
+    {
+      "_id": "req-listings-unsave",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Unsave Listing",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}/save",
+      "method": "DELETE",
+      "sortNum": 28000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Removes a listing from the user's saved list."
+    },
+
+    {
+      "_id": "req-listings-views",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Increment Views",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}/views",
+      "method": "POST",
+      "sortNum": 29000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "none" },
+      "tests": [],
+      "docs": "Public endpoint. Increments the view counter for an ACTIVE listing."
+    },
+
+    {
+      "_id": "req-listings-sold",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Mark as Sold",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}/sold",
+      "method": "POST",
+      "sortNum": 30000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Sets listing status to SOLD. Only the listing owner can call this."
+    },
+
+    {
+      "_id": "req-listings-delete",
+      "colId": "col-autoshqip",
+      "containerId": "folder-listings",
+      "name": "Delete Listing",
+      "url": "{{baseUrl}}/api/listings/{{listingId}}",
+      "method": "DELETE",
+      "sortNum": 31000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Permanently deletes the listing. Only the owner or an ADMIN can delete."
+    },
+
+    {
+      "_id": "req-users-profile",
+      "colId": "col-autoshqip",
+      "containerId": "folder-users",
+      "name": "Update Profile",
+      "url": "{{baseUrl}}/api/users/profile",
+      "method": "PUT",
+      "sortNum": 35000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"Test User Updated\",\n  \"phone\": \"+355691234567\",\n  \"city\": \"Tiranë\",\n  \"avatarUrl\": \"\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Updates name, phone, city, and/or avatarUrl for the authenticated user."
+    },
+
+    {
+      "_id": "req-users-credits",
+      "colId": "col-autoshqip",
+      "containerId": "folder-users",
+      "name": "Get Credits & Transactions",
+      "url": "{{baseUrl}}/api/users/credits",
+      "method": "GET",
+      "sortNum": 36000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns current credit balance and the last 30 credit transactions."
+    },
+
+    {
+      "_id": "req-messages-conversations",
+      "colId": "col-autoshqip",
+      "containerId": "folder-messages",
+      "name": "Get Conversations",
+      "url": "{{baseUrl}}/api/messages/conversations",
+      "method": "GET",
+      "sortNum": 40000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns the latest message per listing conversation (inbox view). Includes listing thumbnail, sender, and receiver info."
+    },
+
+    {
+      "_id": "req-messages-send",
+      "colId": "col-autoshqip",
+      "containerId": "folder-messages",
+      "name": "Send Message",
+      "url": "{{baseUrl}}/api/messages",
+      "method": "POST",
+      "sortNum": 41000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"receiverId\": \"{{userId}}\",\n  \"content\": \"Pershendetje! A eshte akoma ne shitje kjo makine?\"\n}",
+        "form": [],
+        "files": []
+      },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Send a message about a listing. Rate limited: 20 messages/min. receiverId must be a different user (can't message yourself). Set {{userId}} to the listing owner's ID."
+    },
+
+    {
+      "_id": "req-messages-thread",
+      "colId": "col-autoshqip",
+      "containerId": "folder-messages",
+      "name": "Get Message Thread",
+      "url": "{{baseUrl}}/api/messages/{{listingId}}",
+      "method": "GET",
+      "sortNum": 42000,
+      "created": "2026-05-13T00:00:00.000Z",
+      "modified": "2026-05-13T00:00:00.000Z",
+      "headers": [],
+      "params": [
+        { "name": "withUser", "value": "{{userId}}", "isPath": false }
+      ],
+      "body": { "type": "none", "raw": "", "form": [], "files": [] },
+      "auth": { "type": "bearer", "bearer": "{{accessToken}}" },
+      "tests": [],
+      "docs": "Returns the full message thread for a listing between the authenticated user and {{userId}}. Also marks all unread messages as read."
+    }
+  ]
+}

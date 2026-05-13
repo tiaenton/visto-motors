@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  DEALER
+  ADMIN
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  EXPIRED
+  REJECTED
+}
+
+enum FuelType {
+  BENZINE
+  DIESEL
+  ELEKTRIK
+  HIBRID
+  GAS
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIK
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+enum BoostStatus {
+  ACTIVE
+  EXPIRED
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  name              String
+  phone             String?
+  role              Role      @default(USER)
+  isVerified        Boolean   @default(false)
+  verifyToken       String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  avatarUrl         String?
+  city              String?
+  referralCode      String    @unique @default(uuid())
+  referredById      String?
+  referredBy        User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]    @relation("Referrals")
+  creditBalance     Float     @default(0)
+  stripeCustomerId  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  listings          Listing[]
+  subscription      Subscription?
+  creditTransactions CreditTransaction[]
+  messages          Message[]           @relation("SentMessages")
+  receivedMessages  Message[]           @relation("ReceivedMessages")
+  savedListings     SavedListing[]
+  boosts            Boost[]
+
+  @@map("users")
+}
+
+model Listing {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        ListingStatus @default(DRAFT)
+  title         String
+  description   String        @db.Text
+  price         Float
+  year          Int
+  make          String
+  model         String
+  variant       String?
+  mileage       Int
+  fuelType      FuelType
+  transmission  Transmission
+  engineSize    Float?
+  power         Int?
+  color         String?
+  doors         Int?
+  seats         Int?
+  vin           String?
+  city          String
+  region        String?
+  images        ListingImage[]
+  isFeatured    Boolean       @default(false)
+  featuredUntil DateTime?
+  views         Int           @default(0)
+  vinChecked    Boolean       @default(false)
+  vinReportUrl  String?
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  messages      Message[]
+  savedBy       SavedListing[]
+  boosts        Boost[]
+
+  @@map("listings")
+}
+
+model ListingImage {
+  id         String   @id @default(uuid())
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url        String
+  isPrimary  Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@map("listing_images")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String             @unique
+  stripePriceId        String
+  status               SubscriptionStatus
+  plan                 String
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Boost {
+  id          String      @id @default(uuid())
+  listingId   String
+  listing     Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  status      BoostStatus @default(ACTIVE)
+  days        Int
+  startedAt   DateTime    @default(now())
+  expiresAt   DateTime
+  stripePId   String?
+  createdAt   DateTime    @default(now())
+
+  @@map("boosts")
+}
+
+model CreditTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  description String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  @@map("credit_transactions")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content     String   @db.Text
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("messages")
+}
+
+model SavedListing {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@map("saved_listings")
+}
