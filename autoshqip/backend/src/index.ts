@@ -17,6 +17,7 @@ import { adminRouter } from './routes/admin'
 import { uploadRouter } from './routes/upload'
 import { errorHandler } from './middleware/errorHandler'
 import { logger } from './utils/logger'
+import { startExpireListingsJob } from './jobs/expireListings'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -65,6 +66,7 @@ app.use(errorHandler)
 
 app.listen(PORT, () => {
   logger.info(`AutoShqip API running on port ${PORT}`)
+  startExpireListingsJob()
 })
 
 export default app
