@@ -65,6 +65,8 @@ model User {
   referrals         User[]    @relation("Referrals")
   creditBalance     Float     @default(0)
   stripeCustomerId  String?
+  isBanned          Boolean   @default(false)
+  bannedAt          DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -116,6 +118,14 @@ model Listing {
   savedBy       SavedListing[]
   boosts        Boost[]
 
+  @@index([status])
+  @@index([userId])
+  @@index([status, isFeatured])
+  @@index([status, expiresAt])
+  @@index([make, model])
+  @@index([city])
+  @@index([price])
+  @@index([year])
   @@map("listings")
 }
 
@@ -161,6 +171,8 @@ model Boost {
   stripePId   String?
   createdAt   DateTime    @default(now())
 
+  @@index([listingId])
+  @@index([expiresAt])
   @@map("boosts")
 }
 
@@ -174,6 +186,7 @@ model CreditTransaction {
   referenceId String?
   createdAt   DateTime @default(now())
 
+  @@index([userId])
   @@map("credit_transactions")
 }
 
@@ -189,6 +202,8 @@ model Message {
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
 
+  @@index([listingId, senderId, receiverId])
+  @@index([receiverId, isRead])
   @@map("messages")
 }
 

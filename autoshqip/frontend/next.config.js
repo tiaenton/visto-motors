@@ -5,6 +5,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.r2.dev' },
       { protocol: 'https', hostname: '**.cloudflare.com' },
       { protocol: 'https', hostname: 'placehold.co' },
+      { protocol: 'http', hostname: 'localhost', port: '4000' },
     ],
   },
 }

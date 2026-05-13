@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { listingsApi, paymentsApi } from '@/lib/api'
 import { ListingCard } from '@/components/cars/ListingCard'
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 export default function DashboardPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [listings, setListings] = useState<any[]>([])
   const [subscription, setSubscription] = useState<any>(null)
   const [loadingData, setLoadingData] = useState(true)
@@ -18,6 +19,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!loading && !user) router.push('/login')
   }, [user, loading])
+
+  useEffect(() => {
+    if (searchParams.get('subscription') === 'success') {
+      toast.success('Abonimi u aktivizua me sukses!')
+      router.replace('/dashboard')
+    }
+    if (searchParams.get('boost') === 'success') {
+      toast.success('Boost u aktivizua me sukses!')
+      router.replace('/dashboard')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!user) return

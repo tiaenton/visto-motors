@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator'
 import { authenticate, requireAdmin } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 import { prisma } from '../utils/prisma'
+import { redis } from '../utils/redis'
 import { AppError } from '../utils/AppError'
 
 export const adminRouter = Router()
@@ -38,7 +39,7 @@ adminRouter.get(
       const [users, total] = await Promise.all([
         prisma.user.findMany({
           skip, take: limit,
-          select: { id: true, email: true, name: true, role: true, isVerified: true, createdAt: true, _count: { select: { listings: true } } },
+          select: { id: true, email: true, name: true, role: true, isVerified: true, isBanned: true, createdAt: true, _count: { select: { listings: true } } },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.user.count(),
@@ -74,6 +75,42 @@ adminRouter.patch(
         select: { id: true, email: true, name: true, role: true, isVerified: true },
       })
       res.json(user)
+    } catch (err) { next(err) }
+  },
+)
+
+adminRouter.post(
+  '/users/:id/ban',
+  [param('id').isUUID()],
+  validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const target = await prisma.user.findUnique({ where: { id: req.params.id } })
+      if (!target) throw new AppError('Përdoruesi nuk u gjet', 404)
+      if (target.role === 'ADMIN') throw new AppError('Nuk mund të bllokosh admin', 400)
+
+      await prisma.user.update({
+        where: { id: req.params.id },
+        data: { isBanned: true, bannedAt: new Date() },
+      })
+      await redis.set(`banned:${req.params.id}`, '1')
+      res.json({ message: 'Përdoruesi u bllokua' })
+    } catch (err) { next(err) }
+  },
+)
+
+adminRouter.post(
+  '/users/:id/unban',
+  [param('id').isUUID()],
+  validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await prisma.user.update({
+        where: { id: req.params.id },
+        data: { isBanned: false, bannedAt: null },
+      })
+      await redis.del(`banned:${req.params.id}`)
+      res.json({ message: 'Bllokimi u hoq' })
     } catch (err) { next(err) }
   },
 )

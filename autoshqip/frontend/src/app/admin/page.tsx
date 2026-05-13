@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { Users, Car, Euro, TrendingUp, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Users, Car, Euro, TrendingUp, CheckCircle, XCircle, Trash2, ShieldOff, ShieldCheck } from 'lucide-react'
 
 export default function AdminPage() {
   const { user, loading } = useAuth()
@@ -51,6 +51,12 @@ export default function AdminPage() {
     await api.patch(`/api/admin/users/${id}`, { isVerified: !current })
     setUsers((p) => p.map((u) => u.id === id ? { ...u, isVerified: !current } : u))
     toast.success(current ? 'Verifikimi u hoq' : 'Përdoruesi u verifikua')
+  }
+
+  async function toggleBan(id: string, isBanned: boolean) {
+    await api.post(`/api/admin/users/${id}/${isBanned ? 'unban' : 'ban'}`)
+    setUsers((p) => p.map((u) => u.id === id ? { ...u, isBanned: !isBanned } : u))
+    toast.success(isBanned ? 'Bllokimi u hoq' : 'Përdoruesi u bllokua')
   }
 
   if (loading || loadingData) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" /></div>
@@ -157,6 +163,7 @@ export default function AdminPage() {
                   <th className="text-left p-4 font-medium text-gray-600">Roli</th>
                   <th className="text-left p-4 font-medium text-gray-600">Njoftime</th>
                   <th className="text-left p-4 font-medium text-gray-600">Verifikuar</th>
+                  <th className="text-left p-4 font-medium text-gray-600">Statusi</th>
                   <th className="text-left p-4 font-medium text-gray-600">Data</th>
                   <th className="text-left p-4 font-medium text-gray-600">Veprime</th>
                 </tr>
@@ -179,12 +186,26 @@ export default function AdminPage() {
                         ? <CheckCircle size={16} className="text-green-500" />
                         : <XCircle size={16} className="text-gray-300" />}
                     </td>
+                    <td className="p-4">
+                      {u.isBanned
+                        ? <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Bllokuar</span>
+                        : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Aktiv</span>}
+                    </td>
                     <td className="p-4 text-gray-500 text-xs">{new Date(u.createdAt).toLocaleDateString('sq-AL')}</td>
                     <td className="p-4">
-                      <button onClick={() => toggleVerify(u.id, u.isVerified)}
-                        className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
-                        {u.isVerified ? 'Hiq Verif.' : 'Verifiko'}
-                      </button>
+                      <div className="flex gap-1">
+                        <button onClick={() => toggleVerify(u.id, u.isVerified)}
+                          className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
+                          {u.isVerified ? 'Hiq Verif.' : 'Verifiko'}
+                        </button>
+                        {u.role !== 'ADMIN' && (
+                          <button onClick={() => toggleBan(u.id, u.isBanned)}
+                            className={`p-1.5 rounded ${u.isBanned ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`}
+                            title={u.isBanned ? 'Hiq Bllokimin' : 'Bllokonjë'}>
+                            {u.isBanned ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

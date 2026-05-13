@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 import {
   createSubscription,
+  createSubscriptionCheckout,
   cancelSubscription,
   getSubscription,
   createBoost,
@@ -18,6 +19,13 @@ paymentsRouter.use(authenticate)
 
 paymentsRouter.get('/subscription', getSubscription)
 paymentsRouter.get('/portal', getPortalUrl)
+
+paymentsRouter.post(
+  '/checkout',
+  [body('plan').optional().isIn(['basic', 'premium']).withMessage('Plan duhet të jetë basic ose premium')],
+  validate,
+  createSubscriptionCheckout,
+)
 
 paymentsRouter.post(
   '/subscription',

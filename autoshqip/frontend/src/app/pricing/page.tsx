@@ -1,6 +1,10 @@
 'use client'
+import { useState } from 'react'
 import { Check } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { paymentsApi } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 const plans = [
   {
@@ -9,6 +13,7 @@ const plans = [
     desc: 'Për shitës privatë',
     features: ['1 njoftim aktiv', 'Fotografi deri 10', 'WhatsApp direktë', 'Listim 30 ditë'],
     cta: 'Fillo Falas',
+    plan: null as null | 'basic' | 'premium',
     href: '/register',
     featured: false,
   },
@@ -18,7 +23,8 @@ const plans = [
     desc: 'Për dealerë të vegjël',
     features: ['Deri 10 njoftime aktive', 'Fotografi deri 20 / njoftim', 'Insignë dealer i verifikuar', 'Listim 30 ditë', 'Statistika bazë', 'WhatsApp direktë'],
     cta: 'Fillo Tani',
-    href: '/register',
+    plan: 'basic' as const,
+    href: null,
     featured: true,
   },
   {
@@ -26,13 +32,37 @@ const plans = [
     price: 15,
     desc: 'Për dealerë të mëdhenj',
     features: ['Njoftime të pakufizuara', 'Fotografi të pakufizuara', '1 njoftim i spikatur / muaj falas', 'Statistika të avancuara', 'Prioritet në rezultate', 'Insignë premium'],
-    cta: 'Kontakto Ne',
-    href: 'mailto:hello@autoshqip.al',
+    cta: 'Abonohu Tani',
+    plan: 'premium' as const,
+    href: null,
     featured: false,
   },
 ]
 
 export default function PricingPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState<string | null>(null)
+
+  async function handleCheckout(plan: 'basic' | 'premium', planName: string) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+    if (!token) {
+      router.push('/register')
+      return
+    }
+
+    setLoading(planName)
+    try {
+      const { data } = await paymentsApi.createCheckout(plan)
+      window.location.href = data.checkoutUrl
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Ndodhi një gabim'
+      toast.error(msg)
+      if (err.response?.status === 401) router.push('/login')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <div className="text-center mb-12">
@@ -64,9 +94,19 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link href={plan.href} className={plan.featured ? 'btn-primary text-center py-3' : 'btn-secondary text-center py-3'}>
-              {plan.cta}
-            </Link>
+            {plan.plan ? (
+              <button
+                onClick={() => handleCheckout(plan.plan!, plan.name)}
+                disabled={loading === plan.name}
+                className={`${plan.featured ? 'btn-primary' : 'btn-secondary'} text-center py-3 disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                {loading === plan.name ? 'Duke u ngarkuar...' : plan.cta}
+              </button>
+            ) : (
+              <Link href={plan.href!} className="btn-secondary text-center py-3">
+                {plan.cta}
+              </Link>
+            )}
           </div>
         ))}
       </div>
@@ -87,6 +127,10 @@ export default function PricingPage() {
           ))}
         </div>
       </div>
+
+      <p className="text-center text-sm text-gray-500 mt-8">
+        Pagesa procesohet nga Stripe — karta jote është e sigurt.
+      </p>
     </div>
   )
 }

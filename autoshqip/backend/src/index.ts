@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import * as Sentry from '@sentry/node'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -6,6 +7,14 @@ import compression from 'compression'
 import morgan from 'morgan'
 import { rateLimit } from 'express-rate-limit'
 import path from 'path'
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+  })
+}
 
 import { authRouter } from './routes/auth'
 import { listingsRouter } from './routes/listings'
@@ -32,7 +41,7 @@ app.use(cors({
 }))
 
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }))
-app.use(express.json({ limit: '10mb' }))
+app.use(express.json({ limit: '512kb' }))
 app.use(express.urlencoded({ extended: true }))
 
 const limiter = rateLimit({
@@ -62,6 +71,9 @@ app.use('/api/messages', messagesRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/upload', uploadRouter)
 
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app)
+}
 app.use(errorHandler)
 
 app.listen(PORT, () => {

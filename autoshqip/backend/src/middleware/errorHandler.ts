@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express'
+import * as Sentry from '@sentry/node'
 import { AppError } from '../utils/AppError'
 import { logger } from '../utils/logger'
 
-export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ error: err.message })
   }
@@ -13,5 +14,6 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   }
 
   logger.error(err)
+  if (process.env.SENTRY_DSN) Sentry.captureException(err)
   res.status(500).json({ error: 'Gabim i brendshëm i serverit' })
 }

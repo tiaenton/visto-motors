@@ -65,6 +65,38 @@ export async function createSubscription(req: Request, res: Response, next: Next
   }
 }
 
+export async function createSubscriptionCheckout(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = (req as any).user.userId
+    const { plan = 'basic' } = req.body
+
+    const existingSub = await prisma.subscription.findUnique({ where: { userId } })
+    if (existingSub?.status === 'ACTIVE') {
+      throw new AppError('Tashmë ke abonim aktiv', 400)
+    }
+
+    const priceId = plan === 'premium'
+      ? process.env.STRIPE_PRICE_ID_PREMIUM!
+      : process.env.STRIPE_PRICE_ID_BASIC!
+
+    const customerId = await getOrCreateStripeCustomer(userId)
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      metadata: { userId, plan },
+      success_url: `${process.env.FRONTEND_URL}/dashboard?subscription=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/pricing`,
+    })
+
+    res.json({ checkoutUrl: session.url })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function cancelSubscription(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = (req as any).user.userId

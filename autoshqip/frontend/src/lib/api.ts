@@ -65,6 +65,7 @@ export const authApi = {
 
 export const paymentsApi = {
   getSubscription: () => api.get('/api/payments/subscription'),
+  createCheckout: (plan: 'basic' | 'premium') => api.post('/api/payments/checkout', { plan }),
   createSubscription: (data: any) => api.post('/api/payments/subscription', data),
   cancelSubscription: () => api.delete('/api/payments/subscription'),
   createBoost: (listingId: string, data: any) => api.post(`/api/payments/boost/${listingId}`, data),

@@ -1,7 +1,18 @@
 import { Request, Response, NextFunction } from 'express'
 import { prisma } from '../utils/prisma'
+import { redis } from '../utils/redis'
 import { AppError } from '../utils/AppError'
 import { checkSubscription } from '../services/subscriptionService'
+
+const ALLOWED_IMAGE_HOSTS = [
+  process.env.R2_PUBLIC_URL,
+  `http://localhost:${process.env.PORT || 4000}`,
+  `https://localhost:${process.env.PORT || 4000}`,
+].filter(Boolean) as string[]
+
+function isAllowedImageUrl(url: string): boolean {
+  return ALLOWED_IMAGE_HOSTS.some((host) => url.startsWith(host))
+}
 
 export async function getListings(req: Request, res: Response, next: NextFunction) {
   try {
@@ -115,6 +126,8 @@ export async function createListing(req: Request, res: Response, next: NextFunct
       color, doors, seats, vin, city, region, imageUrls,
     } = req.body
 
+    const safeImageUrls: string[] = (imageUrls ?? []).filter((url: string) => isAllowedImageUrl(url))
+
     const listing = await prisma.listing.create({
       data: {
         userId,
@@ -138,8 +151,8 @@ export async function createListing(req: Request, res: Response, next: NextFunct
         region,
         status: 'ACTIVE',
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        images: imageUrls?.length
-          ? { create: imageUrls.map((url: string, i: number) => ({ url, isPrimary: i === 0, order: i })) }
+        images: safeImageUrls.length
+          ? { create: safeImageUrls.map((url: string, i: number) => ({ url, isPrimary: i === 0, order: i })) }
           : undefined,
       },
       include: { images: true },
@@ -151,6 +164,8 @@ export async function createListing(req: Request, res: Response, next: NextFunct
   }
 }
 
+const ALLOWED_UPDATE_FIELDS = ['title', 'description', 'price', 'year', 'make', 'model', 'variant', 'mileage', 'fuelType', 'transmission', 'engineSize', 'power', 'color', 'doors', 'seats', 'vin', 'city', 'region'] as const
+
 export async function updateListing(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params
@@ -161,12 +176,12 @@ export async function updateListing(req: Request, res: Response, next: NextFunct
     if (!listing) throw new AppError('Njoftime nuk u gjet', 404)
     if (listing.userId !== userId && user.role !== 'ADMIN') throw new AppError('Pa leje', 403)
 
-    const updated = await prisma.listing.update({
-      where: { id },
-      data: req.body,
-      include: { images: true },
-    })
+    const data: Record<string, unknown> = {}
+    for (const field of ALLOWED_UPDATE_FIELDS) {
+      if (req.body[field] !== undefined) data[field] = req.body[field]
+    }
 
+    const updated = await prisma.listing.update({ where: { id }, data, include: { images: true } })
     res.json(updated)
   } catch (err) {
     next(err)
@@ -265,10 +280,17 @@ export async function markAsSold(req: Request, res: Response, next: NextFunction
 export async function incrementViews(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params
-    await prisma.listing.updateMany({
-      where: { id, status: 'ACTIVE' },
-      data: { views: { increment: 1 } },
-    })
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown'
+    const dedupKey = `view:${id}:${ip}`
+
+    const already = await redis.get(dedupKey)
+    if (!already) {
+      await Promise.all([
+        prisma.listing.updateMany({ where: { id, status: 'ACTIVE' }, data: { views: { increment: 1 } } }),
+        redis.set(dedupKey, '1', 'EX', 3600),
+      ])
+    }
+
     res.json({ ok: true })
   } catch (err) {
     next(err)
